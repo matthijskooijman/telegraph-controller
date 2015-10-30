@@ -62,6 +62,8 @@
 // the 'baud rate' of the serial port
 #define SerialRate (9600)
 
+#define TIMING_DEBUG
+
 // ================== END OF CONFIGURATION SETTINGS ==================
 
 // local headers
@@ -183,12 +185,25 @@ static void Pulse(unsigned long now, unsigned pulseWidth, bool state) {
 	cw.Mark = (bool)(!state); // the keyer pulls the pin LOW on contact
 	cw.Length = (unsigned)pulseWidth;
 	CwBuffer.Add(cw);		// TODO: check this for failure, to detect overrun
-	
+#ifdef TIMING_DEBUG
+	if (state)
+		Serial.print("(");
+	Serial.print(pulseWidth);
+	if (state)
+		Serial.print(")");
+
+	Serial.print(" ");
+#endif
+
 	if (Timing.Decode(CwBuffer, ElementBuffer)) {
 		byte ct = Decoder.Decode(ElementBuffer, ioBuffer, 8);
 		if (ct > 0) {
 			ioBuffer[ct] = 0;
 			HostSerial.print(ioBuffer);
+#ifdef TIMING_DEBUG
+			Serial.print(" --> ");
+			Serial.println(Timing.DotLength());
+#endif
 		}
 	}
 }
