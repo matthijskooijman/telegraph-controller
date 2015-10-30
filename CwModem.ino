@@ -280,9 +280,11 @@ void setup() {
 	digitalWrite(CW_KEY_PIN, LOW);
 
 	// CW PTT
+#if CW_PTT_PIN != 0
 	pinMode(CW_PTT_PIN, OUTPUT);
 	digitalWrite(CW_PTT_PIN, LOW);
 	pttState = false;
+#endif
 
 	// save initial timestamps
 	lastTime = millis();
@@ -350,10 +352,12 @@ void loop() {
 
 	// key-up
 	now = millis();
+#if CW_PTT_PIN != 0
 	if (!tx && pttState && Elapsed(now, lastKeyDown) > pttLeadOut) {
 		digitalWrite(CW_PTT_PIN, LOW);
 		pttState = false;
 	}
+#endif
 	
 	// if user input ready
 	if (inputReady) {
@@ -590,7 +594,9 @@ void loop() {
 			// hard-stop?
 			if (ch == ESC || ch == CtlC) {
 				digitalWrite(CW_KEY_PIN, LOW);
+#if CW_PTT_PIN != 0
 				digitalWrite(CW_PTT_PIN, LOW);
+#endif
 				TxBuffer.Clear();
 				CwBuffer.Clear();
 				ElementBuffer.Clear();
@@ -632,10 +638,12 @@ void loop() {
 				// otherwise, generate characters, and go into TX mode
 				if (Timing.Encode(ElementBuffer, CwBuffer)) {
 					if (CwBuffer.Remove(cwOut)) {
+#if CW_PTT_PIN != 0
 						// PTT lead-in
 						pttState = true;
 						digitalWrite(CW_PTT_PIN, HIGH);
 						delay(pttLeadIn);
+#endif
 
 						// start sending
 						tx = true;
