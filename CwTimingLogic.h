@@ -111,9 +111,14 @@ namespace KK5JY {
 
 			public:
 				/// <summary>
-				/// The maximum length for a dot or dot-space, as a multiple of the current average dot length.
+				/// The maximum length for a dot, as a multiple of the current average dot length.
 				/// </summary>
 				float MaximumDotLength;
+
+				/// <summary>
+				/// The maximum length for a dot-space, as a multiple of the current average dot length.
+				/// </summary>
+				float MaximumDotSpaceLength;
 
 				/// <summary>
 				/// The minimum length for a word space, as a multiple of the current average dot length.
@@ -152,6 +157,7 @@ namespace KK5JY {
 				CwTimingLogic(float dotLength = 1.0, int bcLength = 8) : m_BoxCar(0) {
 					// set some reasonable default timing limits
 					MaximumDotLength = 2;
+					MaximumDotSpaceLength = 2;
 					MinimumWordSpace = 4.5;
 					MinimumMark = 0.0;
 					MaximumMark = FLT_MAX;
@@ -286,9 +292,12 @@ namespace KK5JY {
 						}
 
 						// now decode the specific element type
-						if (element.Length <= (MaximumDotLength * m_RxDotLength)) {
-							// short elements
-							result.Add(element.Mark ? Dot : DotSpace);
+						if (element.Mark && element.Length <= (MaximumDotLength * m_RxDotLength)) {
+							// short mark
+							result.Add(Dot);
+						} else if (!element.Mark && element.Length <= (MaximumDotSpaceLength * m_RxDotLength)) {
+							// short space
+							result.Add(DotSpace);
 						} else if (element.Length >= (MinimumWordSpace * m_RxDotLength) && !element.Mark) {
 							// word space
 							result.Add(WordSpace);
