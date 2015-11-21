@@ -24,7 +24,7 @@
  *
  *
  */
-
+//#define VERBOSE_DEBUG
 //
 //  Pin Definitions - These are all used for digital I/O,
 //                    so any of the analog or digital pins
@@ -35,19 +35,22 @@
 
 // blinks momentarily when data is received from the host
 //    (comment out to disable)
-#define CMD_LED (12)
+//#define CMD_LED (13)
 
 // goes HIGH whenever received pulse data is encountered
-#define CW_DET_PIN (13)
+#define CW_DET_PIN (0)
 
 // input pin for detected RX tone data
 #define CW_RX_PIN (A0)
 
 // the PTT output pin
-#define CW_PTT_PIN (A1)
+#define CW_PTT_PIN (7) // Stepper enable
+#define CW_STEPPER_STEP_PIN (9)
+#define CW_STEPPER_DIR_PIN (8)
 
 // the KEY output pin
-#define CW_KEY_PIN (A2)
+#define CW_KEY_PIN (6)
+#define CW_KEY_PIN2 3
 
 //
 //  Serial Port - assign a specific hardware port to be the
@@ -60,9 +63,9 @@
 #define HostSerial Serial
 
 // the 'baud rate' of the serial port
-#define SerialRate (9600)
+#define SerialRate (115200)
 
-#define TIMING_DEBUG
+//#define TIMING_DEBUG
 
 // ================== END OF CONFIGURATION SETTINGS ==================
 
@@ -90,7 +93,7 @@ CircularBuffer<CwElement> CwBuffer(32);
 CircularBuffer<MorseElements> ElementBuffer(32);
 
 // a TX buffer
-CircularBuffer<char> TxBuffer(32);
+CircularBuffer<char> TxBuffer(512);
 
 // the clock restoration logic
 CwTimingLogic Timing;
@@ -145,6 +148,8 @@ bool pttState = false;
 // data LED hang-time (makes it more obvious to the user that data was rec'd)
 const int DataLedDelay = 250;
 
+volatile bool tx_tone = false;
+
 // TX element timing
 unsigned long curTxStart = 0;
 unsigned long lastKeyDown = 0;
@@ -153,7 +158,7 @@ CwElement cwOut;
 
 // PTT timing
 unsigned pttLeadIn = 100;			// msec
-unsigned pttLeadOut = 250;			// msec
+unsigned pttLeadOut = 2500;			// msec
 
 // Limits
 const int MaxPttLeadIn = 500;		// msec
@@ -256,9 +261,9 @@ void setup() {
 	
 	// allocate strings
 	cmdText.reserve(CommandStringLength);
-	inputString.reserve(InputStringLength);
-	inputString = strcpy_P(ioBuffer, PSTR("#VERSION;"));
-	inputReady = true;
+	//inputString.reserve(InputStringLength);
+	//inputString = strcpy_P(ioBuffer, PSTR("#VERSION;"));
+	//inputReady = true;
 
 	// the 'command' LED
 	#ifdef CMD_LED
@@ -291,27 +296,67 @@ void setup() {
 #endif
 	
 	// CW TX
-	pinMode(CW_KEY_PIN, OUTPUT);
-	digitalWrite(CW_KEY_PIN, LOW);
+	pinMode(CW_KEY_PIN, INPUT);
+	tx_tone = false;
+	//digitalWrite(CW_KEY_PIN, LOW);
+	// Set up 128us period PWM on pin PD3 / D3 to limit current
+	// through telegraph coils. Higer frequency reduces coil noise.
+	// This timer is also used to generate the tone output.
+	pinMode(CW_KEY_PIN2, INPUT);
+	TCCR2A = _BV(COM2B1) | _BV(WGM20) | _BV(WGM21);
+	TCCR2B = _BV(CS21);
+	// PWM duty cycle (higher is more current / force)
+	OCR2B = 80;
+
+	TIMSK2 = _BV(TOIE2);
 
 	// CW PTT
 #if CW_PTT_PIN != 0
+	// PTT pin controls stepper enable pin
 	pinMode(CW_PTT_PIN, OUTPUT);
-	digitalWrite(CW_PTT_PIN, LOW);
+	digitalWrite(CW_PTT_PIN, HIGH);
 	pttState = false;
+
 #endif
+
+	// Set up variable frequency 50% PWM for stepper driver "step"
+	// pin (pin PB1 / D9). A single timer step is 16us.
+	pinMode(CW_STEPPER_STEP_PIN, OUTPUT);
+	TCCR1A = _BV(COM1A0) |  _BV(WGM11) | _BV(WGM10);
+	TCCR1B = _BV(WGM13) | _BV(WGM12) |_BV(CS22);
+	OCR1A = 6; // Step time (lower is faster)
+
+	// Stepper direction is fixed
+	pinMode(CW_STEPPER_DIR_PIN, OUTPUT);
+	digitalWrite(CW_STEPPER_DIR_PIN, HIGH);
 
 	// save initial timestamps
 	lastTime = millis();
 	lastRxData = lastTime;
 	
 	// initialize WPM
-	Timing.RxWPM(25);
-	Timing.TxWPM(25);
+	Timing.RxWPM(10);
+	Timing.TxWPM(12);
 	Timing.RxMode(SpeedAuto);
-	Timing.TxMode(SpeedAuto);
+	Timing.TxMode(SpeedManual);
+	// Be a bit more lenient about the length of spaces, to
+	// facilitate inexperienced operators
+	Timing.MaximumDotSpaceLength = 4;
+	Timing.MinimumWordSpace = 15;
 }
 
+uint8_t overflow_count = 0;
+const uint8_t TONE_PERIOD = 6; // 11 periods of 128us gives 710Hz
+
+static_assert(CW_KEY_PIN == 6, "CW_KEY_PIN assumed to be D6 / PD6");
+
+ISR(TIMER2_OVF_vect) {
+	if ((DDRD & (1 << PD6)) && overflow_count == 0) {
+		overflow_count = TONE_PERIOD;
+		PIND = (1 << PD6);
+	}
+	overflow_count--;
+}
 
 //
 //  loop()
@@ -348,7 +393,9 @@ void loop() {
 			if (CwBuffer.Remove(cwOut)) {
 				curTxStart = now;
 				curTxLength = cwOut.Length;
-				digitalWrite(CW_KEY_PIN, cwOut.Mark);
+				tx_tone = cwOut.Mark;
+				pinMode(CW_KEY_PIN, cwOut.Mark);
+				pinMode(CW_KEY_PIN2, cwOut.Mark);
 				if (!cwOut.Mark) {
 					lastKeyDown = now;
 				}
@@ -369,7 +416,7 @@ void loop() {
 	now = millis();
 #if CW_PTT_PIN != 0
 	if (!tx && pttState && Elapsed(now, lastKeyDown) > pttLeadOut) {
-		digitalWrite(CW_PTT_PIN, LOW);
+		digitalWrite(CW_PTT_PIN, HIGH);
 		pttState = false;
 	}
 #endif
@@ -389,6 +436,7 @@ void loop() {
 		for (int i = 0; i != inputString.length(); ++i) {
 			char ch = inputString.charAt(i);
 			
+		/*	
 			// if we are in command mode...
 			if (cmd) {
 				if (ch == '#') {
@@ -598,7 +646,6 @@ void loop() {
 				}
 				continue;
 			}
-			
 			// start command mode??
 			if ((!cmd) && (ch == '#')) {
 				cmd = true;
@@ -608,9 +655,11 @@ void loop() {
 
 			// hard-stop?
 			if (ch == ESC || ch == CtlC) {
-				digitalWrite(CW_KEY_PIN, LOW);
+				tx_tone = false;
+				pinMode(CW_KEY_PIN, INPUT);
+				pinMode(CW_KEY_PIN2, INPUT);
 #if CW_PTT_PIN != 0
-				digitalWrite(CW_PTT_PIN, LOW);
+				digitalWrite(CW_PTT_PIN, HIGH);
 #endif
 				TxBuffer.Clear();
 				CwBuffer.Clear();
@@ -619,7 +668,7 @@ void loop() {
 				tx = false;
 				continue;
 			}
-
+*/
 			// echo the char, if enabled
 			if (echo) {
 				HostSerial.print(ch);
@@ -638,7 +687,7 @@ void loop() {
 			}
 			
 			#ifdef VERBOSE_DEBUG
-			HostSerial.print(strcpy(ioBuffer, PSTR("Send: ")));
+			HostSerial.print(strcpy_P(ioBuffer, PSTR("Send: ")));
 			HostSerial.println(ch);
 			#endif
 
@@ -656,7 +705,7 @@ void loop() {
 #if CW_PTT_PIN != 0
 						// PTT lead-in
 						pttState = true;
-						digitalWrite(CW_PTT_PIN, HIGH);
+						digitalWrite(CW_PTT_PIN, LOW);
 						delay(pttLeadIn);
 #endif
 
@@ -664,7 +713,9 @@ void loop() {
 						tx = true;
 						curTxStart = millis();
 						curTxLength = cwOut.Length;
-						digitalWrite(CW_KEY_PIN, cwOut.Mark);
+						tx_tone = cwOut.Mark;
+						pinMode(CW_KEY_PIN, cwOut.Mark);
+						pinMode(CW_KEY_PIN2, cwOut.Mark);
 						if (!cwOut.Mark) {
 							lastKeyDown = curTxStart;
 						}
@@ -695,6 +746,9 @@ done:
 			bool newState = KeyInput.read();
 			unsigned long now = millis();
 			unsigned long pulseWidth = 0;
+
+			pinMode(CW_KEY_PIN, newState ? INPUT : OUTPUT);
+			tx_tone = !newState;
 			
 			// calculate the pulse width
 			pulseWidth = Elapsed(now, lastTime);
@@ -734,6 +788,7 @@ done:
 		char inChar = (char)HostSerial.read();
 		// add it to the inputString:
 		inputString += inChar;
+Serial.write(inChar);
 		inputReady = true;
 	}
 }

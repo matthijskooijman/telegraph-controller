@@ -193,6 +193,7 @@ namespace KK5JY {
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("-..-")), 'X');
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("-.--")), 'Y');
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("--..")), 'Z');
+					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR(".-.-")), '\n');
 
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("-----")), '0');
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR(".----")), '1');
@@ -204,16 +205,16 @@ namespace KK5JY {
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("--...")), '7');
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("---..")), '8');
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("----.")), '9');
-
+/*
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("-..-.")), '/');
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR(".-...")), '&');
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("-...-")), '=');
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR(".-.-.")), '+');
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("-.--.")), '(');
-
+*/
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR(".-.-.-")), '.');
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("--..--")), ',');
-					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("..--..")), '?');
+				/*	*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("..--..")), '?');
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR(".----.")), ',');
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("-.-.--")), ',');
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("-.--.-")), ')');
@@ -226,6 +227,7 @@ namespace KK5JY {
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("-.-.--")), '!');
 
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("...-..-")), '$');
+					*/
 					
 					// compute maximum element size
 					m_MaxElements = 0;

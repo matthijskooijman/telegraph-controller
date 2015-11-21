@@ -320,7 +320,8 @@ namespace KK5JY {
 					MorseElements el;
 					const int dotSpace = m_TxDotLength;
 					const int dashSpace = dotSpace * 3;
-					const int wordSpace = dotSpace * 5; //7; // word-space less dot-space on either end
+					const int charSpace = dotSpace * 5;
+					const int wordSpace = dotSpace * 12; //7; // word-space less dot-space on either end
 					CwElement cw;
 					int result = 0;
 					
@@ -346,7 +347,7 @@ namespace KK5JY {
 								break;
 							case DashSpace:
 								cw.Mark = false;
-								cw.Length = dashSpace;
+								cw.Length = charSpace;
 								cwBuffer.Add(cw);
 								++result;
 								break;
