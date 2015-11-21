@@ -63,7 +63,7 @@
 #define HostSerial Serial
 
 // the 'baud rate' of the serial port
-#define SerialRate (115200)
+#define SerialRate (4800)
 
 //#define TIMING_DEBUG
 
