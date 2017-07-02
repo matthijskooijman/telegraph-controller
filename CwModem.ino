@@ -158,7 +158,7 @@ CwElement cwOut;
 
 // PTT timing
 unsigned pttLeadIn = 100;			// msec
-unsigned pttLeadOut = 2500;			// msec
+unsigned pttLeadOut = 3500;			// msec
 
 // Limits
 const int MaxPttLeadIn = 500;		// msec
@@ -324,7 +324,7 @@ void setup() {
 	pinMode(CW_STEPPER_STEP_PIN, OUTPUT);
 	TCCR1A = _BV(COM1A0) |  _BV(WGM11) | _BV(WGM10);
 	TCCR1B = _BV(WGM13) | _BV(WGM12) |_BV(CS22);
-	OCR1A = 6; // Step time (lower is faster)
+	OCR1A = 9; // Step time (lower is faster)
 
 	// Stepper direction is fixed
 	pinMode(CW_STEPPER_DIR_PIN, OUTPUT);
@@ -336,7 +336,7 @@ void setup() {
 	
 	// initialize WPM
 	Timing.RxWPM(10);
-	Timing.TxWPM(12);
+	Timing.TxWPM(10);
 	Timing.RxMode(SpeedAuto);
 	Timing.TxMode(SpeedManual);
 	// Be a bit more lenient about the length of spaces, to
@@ -788,7 +788,6 @@ done:
 		char inChar = (char)HostSerial.read();
 		// add it to the inputString:
 		inputString += inChar;
-Serial.write(inChar);
 		inputReady = true;
 	}
 }
