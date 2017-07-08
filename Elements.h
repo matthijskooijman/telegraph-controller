@@ -37,7 +37,7 @@ namespace KK5JY {
 			/// <summary>
 			/// The length of the pulse or space.
 			/// </summary>
-			double Length;
+			unsigned Length;
 
 			/// <summary>
 			/// Indicates that this is a key-down element (Mark).  Otherwise,

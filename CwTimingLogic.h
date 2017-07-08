@@ -316,53 +316,38 @@ namespace KK5JY {
 				/// <summary>
 				/// Do the decoding.
 				/// </summary>
-				int Encode(CircularBuffer<MorseElements> &txBuffer, CircularBuffer<CwElement> &cwBuffer) {
-					MorseElements el;
+				CwElement Encode(MorseElements el) {
 					const int dotSpace = m_TxDotLength;
 					const int dashSpace = dotSpace * 3;
 					const int charSpace = dotSpace * 3;
 					const int wordSpace = dotSpace * 5; //7; // word-space less dot-space on either end
 					CwElement cw;
-					int result = 0;
-					
-					while (txBuffer.Remove(el)) {
-						switch (el) {
-							case Dot:
-								cw.Mark = true;
-								cw.Length = dotSpace;
-								cwBuffer.Add(cw);
-								++result;
-								break;
-							case Dash:
-								cw.Mark = true;
-								cw.Length = dashSpace;
-								cwBuffer.Add(cw);
-								++result;
-								break;
-							case DotSpace:
-								cw.Mark = false;
-								cw.Length = dotSpace;
-								cwBuffer.Add(cw);
-								++result;
-								break;
-							case DashSpace:
-								cw.Mark = false;
-								cw.Length = charSpace;
-								cwBuffer.Add(cw);
-								++result;
-								break;
-							case WordSpace:
-								cw.Mark = false;
-								cw.Length = wordSpace;
-								cwBuffer.Add(cw);
-								++result;
-								break;
-							default:
-								// nop
-								break;
-						}
+					switch (el) {
+						case Dot:
+							cw.Mark = true;
+							cw.Length = dotSpace;
+							break;
+						case Dash:
+							cw.Mark = true;
+							cw.Length = dashSpace;
+							break;
+						case DotSpace:
+							cw.Mark = false;
+							cw.Length = dotSpace;
+							break;
+						case DashSpace:
+							cw.Mark = false;
+							cw.Length = charSpace;
+							break;
+						case WordSpace:
+							cw.Mark = false;
+							cw.Length = wordSpace;
+							break;
+						default:
+							// nop
+							break;
 					}
-					return result;
+					return cw;
 				}
 
 			private:
@@ -382,7 +367,7 @@ namespace KK5JY {
 				/// </summary>
 				void InitializeBoxCar(int dotLength) {
 					m_BoxCarSum = 0;
-					for (int i = 0; i != m_BoxCarSize; ++i) {
+					for (unsigned i = 0; i != m_BoxCarSize; ++i) {
 						m_BoxCar[i] = dotLength;
 						m_BoxCarSum += dotLength;
 					}

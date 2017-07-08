@@ -28,9 +28,9 @@
 #ifndef __CW_DECODER_LOGIC_H
 #define __CW_DECODER_LOGIC_H
 
-#include <WString.h>
 #include <string.h>
 #include <ctype.h>
+#include <queue>
 
 namespace KK5JY {
 	namespace CW {
@@ -158,6 +158,8 @@ namespace KK5JY {
 				CwDecoderLogic() {
 					// the default error symbol
 					ErrorSymbol = '~';
+					#define PSTR(x) x
+					#define strcpy_P strcpy
 
 					// lookup table, sorted by pattern length, and roughly lexically
 					m_MappingLength = 56;
@@ -228,7 +230,9 @@ namespace KK5JY {
 
 					*bp++ = MakeTableEntry(strcpy_P(fbuf, PSTR("...-..-")), '$');
 					*/
-					
+					// Update length, because some entries were removed above
+					m_MappingLength = bp - m_Mapping;
+
 					// compute maximum element size
 					m_MaxElements = 0;
 					for (int i = 0; i != m_MappingLength; ++i) {
@@ -331,42 +335,38 @@ namespace KK5JY {
 				/// <summary>
 				/// Do the encoding.
 				/// </summary>
-				int Encode(CircularBuffer<MorseElements> &txBuffer, const char *buffer, int bufLen) {
+				void Encode(char ch, std::queue<MorseElements>& queue) {
 					byte pattern;
 					byte patLen;
 					byte mask;
-					char ch;
-					int result = 0;
 					bool marked = false;
-					for (int i = 0; i != bufLen; ++i) {
-						ch = buffer[i];
-						if (isspace(ch)) {
-							txBuffer.Add(WordSpace);
-							++result;
-							continue;
-						}
-						if (!Lookup(ch, pattern, patLen)) continue;
-						mask = 1;
-						for (int j = 0; j != patLen; ++j) {
-							if ((pattern & mask) != 0) {
-								// dash
-								if (marked)
-									txBuffer.Add(DotSpace);
-								txBuffer.Add(Dash);
-								marked = true;
-							} else {
-								// dot
-								if (marked)
-									txBuffer.Add(DotSpace);
-								txBuffer.Add(Dot);
-								marked = true;
-							}
-							mask <<= 1;
-						}
-						txBuffer.Add(DashSpace);
-						++result;
+
+					if (isspace(ch)) {
+						queue.push(WordSpace);
+						return;
 					}
-					return result;
+
+					if (!Lookup(ch, pattern, patLen))
+						return;
+
+					mask = 1;
+					for (int j = 0; j != patLen; ++j) {
+						if ((pattern & mask) != 0) {
+							// dash
+							if (marked)
+								queue.push(DotSpace);
+							queue.push(Dash);
+							marked = true;
+						} else {
+							// dot
+							if (marked)
+								queue.push(DotSpace);
+							queue.push(Dot);
+							marked = true;
+						}
+						mask <<= 1;
+					}
+					queue.push(DashSpace);
 				}
 		};
 	}
