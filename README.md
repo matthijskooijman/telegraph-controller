@@ -4,6 +4,13 @@ Install dependencies:
 
 	$ sudo apt-get install libhiredis-dev pigpio
 
+Enable pigpiod:
+
+	$ sudo systemctl enable pigpiod.service
+
+This starts pigpiod which gives all processes on localhost access to all GPIO
+pins through a socket interface.
+
 Compile:
 
 	$ make
