@@ -1,0 +1,10 @@
+[Service]
+ExecStart=/home/pi/telegraph-controller/telegraph-controller
+User=pi
+Restart=always
+
+Requires=redis-server.service
+After=redis-server.service
+
+[Install]
+WantedBy=multi-user.target

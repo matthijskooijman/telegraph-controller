@@ -31,7 +31,6 @@
 using namespace std::chrono_literals;
 
 #include <pigpiod_if2.h>
-#include <ev.h>
 #include <hiredis/hiredis.h>
 #include <hiredis/async.h>
 #include <hiredis/adapters/libev.h>

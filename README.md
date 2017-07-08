@@ -1,6 +1,7 @@
 License
 =======
 Copyright (C) 2014 by Matthew K. Roberts, KK5JY. All rights reserved.
+Copyright (C) 2017 by Matthijs Kooijman
 
 Licensed under GPL Version 3.0
 
