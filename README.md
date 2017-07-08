@@ -1,3 +1,21 @@
+Installation
+============
+Install dependencies:
+
+	$ sudo apt-get install libhiredis-dev pigpio
+
+Compile:
+
+	$ make
+
+Install systemd service file:
+
+	sudo cp telegraph-controller.service /etc/systemd/system
+	sudo systemctl enable telegraph-controller.service
+
+You might need to change the `ExecStart` and `User` properties in the
+`.service` file to point to where the checkout lives.
+
 License
 =======
 Copyright (C) 2014 by Matthew K. Roberts, KK5JY. All rights reserved.
